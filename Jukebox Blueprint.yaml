@@ -1,0 +1,50 @@
+blueprint:
+  name: NFC Jukebox  Scan
+  description: Play Jukebox
+  domain: automation
+
+
+alias: !input alias
+trigger:
+  - platform: event
+    event_type: !input event_name
+condition:
+  - condition: template
+    value_template: '{{ trigger.event.data.tag_id in tags }}'
+  - condition: template
+    value_template: '{{ trigger.event.data.device_id in sources }}'
+action:
+  - variables:
+      source_speaker_id: '{{ sources[trigger.event.data.device_id] }}'
+      media_content_id: '{{ tags[trigger.event.data.tag_id].media_content_id }}'
+      media_content_type: '{{ tags[trigger.event.data.tag_id].media_content_type }}'
+  - service: media_player.select_source
+    target:
+      entity_id: !input media_player
+    data:
+      source: '{{ source_speaker_id }}'
+  - service: media_player.shuffle_set
+    entity_id: !input media_player
+    data:
+      shuffle: true
+  - service: media_player.play_media
+    target:
+      entity_id: !input media_player
+    data:
+      media_content_id: '{{ media_content_id }}'
+      media_content_type: '{{ media_content_type }}'
+  - delay: 2
+mode: single
+max_exceeded: silent
+variables:
+  #Add extra sources with the device_ids found in .storage/core.device_registry 
+  sources:
+    9fc40db847b6db4ac749a957a86e2080: DESKTOP-3JF9SSF
+  #Add extra tags with Tag IDs and spotify links
+  tags:
+    Jukebox-Dear-Evan-Hansen:
+      media_content_id: 'spotify:album:0LhDyJXelg31FKLW5GDcKi'
+      media_content_type: album
+    A7-6B-90-5F:
+      media_content_id: 'spotify:playlist:37i9dQZF1DX59HcpGmPXYR'
+      media_content_type: playlist
