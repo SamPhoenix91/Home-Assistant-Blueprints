@@ -4,7 +4,7 @@ blueprint:
   domain: automation
   input:
       alias:
-      event_name: Default is "tag_scanned"
+      event_name:
       media_player:
 
 alias: !input alias
