@@ -2,10 +2,10 @@ blueprint:
   name: NFC Jukebox  Scan
   description: Play Jukebox
   domain: automation
-    input:
-        alias:
-        event_name: Default is "tag_scanned"
-        media_player:
+  input:
+      alias:
+      event_name: Default is "tag_scanned"
+      media_player:
 
 alias: !input alias
 trigger:
