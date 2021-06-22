@@ -1,1 +1,116 @@
+esphome:
+  name: front_door
+  platform: ESP8266
+  board: nodemcuv2
 
+wifi:
+  ssid: !secret WifiSSID
+  password: !secret WifiPass
+  
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Front Door Fallback Hotspot"
+    password: "d0ql90kKs4wE"
+
+captive_portal:
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  password: !secret esp_home_api_ota
+
+ota:
+  password: !secret esp_home_api_ota
+
+binary_sensor:
+#Doorbell Binary Sensor
+  - platform: gpio
+    name: "Doorbell"
+    pin: D5
+    filters:
+      - delayed_off: 10s
+#Door Sensor
+  - platform: gpio
+    name: "Front Door"
+    pin: 
+      number: D1
+      mode: INPUT_PULLUP
+    device_class: door
+
+#Doorbell Chime Toggle
+switch:
+  #External switch (Exposed to home assistant to save user choice)
+  - platform: template
+    name: "Doorbell Chime"
+    id: extdoorbellchime
+    optimistic: true
+    turn_on_action:
+      #No need to check anything on turn on, as the chime is only ever overridden to an on state.
+      - switch.turn_on: intdoorbellchime
+    turn_off_action:
+    #Check if the chime is being overridden before toggling internal switch
+      - if:
+          condition:
+            and:
+             - api.connected:
+             - wifi.connected:
+          then:
+          - switch.turn_off: intdoorbellchime
+        
+  #Internal switch (Used to override for connection issues)
+  - platform: gpio
+    pin: D2
+    id: intdoorbellchime
+    internal: true
+
+# Doorbell Light Pin
+output:
+  - platform: esp8266_pwm
+    pin: D6
+    id: doorbell_light
+light:
+  - platform: monochromatic
+    name: "Doorbell Light"
+    id: security_light
+    output: doorbell_light
+    effects:
+      #Blinking light (I use to show alarm is active)
+      - strobe:
+          name: "Blinking Light"
+          colors:
+            - state: true
+              duration: 1s
+            - state: false
+              duration: 1s
+    
+    
+    
+#Check that Home Assistant is connected every 5 mins
+time:
+  - platform: sntp
+    id: sntp_time
+    on_time:
+      - seconds: 0
+        minutes: /5
+        then:
+        # If Home Assistant or wifi is disconnected then activate chime.
+        # When connected, assign internal chime to user selected.
+          if:
+            condition:
+              and:
+               - api.connected:
+               - wifi.connected:
+            then:
+              - if:
+                  condition:
+                    switch.is_on: extdoorbellchime
+                  then:
+                    - switch.turn_on: intdoorbellchime
+                  else: 
+                   - switch.turn_off: intdoorbellchime
+            else: 
+              - logger.log: "FALSE"
+              - switch.turn_on: intdoorbellchime
+    
