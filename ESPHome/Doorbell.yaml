@@ -86,7 +86,7 @@ light:
               duration: 1s
     
     
-    
+     
 #Check that Home Assistant is connected every 5 mins
 time:
   - platform: sntp
